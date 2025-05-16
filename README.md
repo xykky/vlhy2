@@ -49,15 +49,13 @@
 ### 1. 下载脚本
 
 ```bash
-wget -O sb-manager.sh <你的脚本在GitHub上的Raw链接>
-# 例如: wget -O sb-manager.sh https://raw.githubusercontent.com/你的用户名/你的仓库名/main/sb-manager.sh
-chmod +x sb-manager.sh
+wget -O lvhy.sh https://raw.githubusercontent.com/Netflixxp/vlhy2/refs/heads/main/lvhy.sh && chmod +x lvhy.sh
 ```
 
 ### 2. 运行脚本
 
 ```bash
-sudo bash sb-manager.sh
+sudo bash lvhy.sh
 ```
 
 脚本将以 root 权限运行，并显示主菜单。
