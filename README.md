@@ -48,11 +48,11 @@
 ### 1. 下载并运行脚本
 
 ```bash
-wget -O lvhy.sh https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/lvhy.sh && chmod +x lvhy.sh && ./lvhy.sh
+wget -O lvhy.sh https://raw.githubusercontent.com/Netflixxp/vlhy2/main/lvhy.sh && chmod +x lvhy.sh && ./lvhy.sh
 ```
 或者
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/lvhy.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/Netflixxp/vlhy2/main/lvhy.sh)
 ```
 
 ### 2. 再次运行脚本
