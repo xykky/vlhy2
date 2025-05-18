@@ -154,7 +154,8 @@ attempt_install_package() {
 
 check_dependencies() {
     info "检查核心依赖..."
-    local core_deps=("curl" "openssl" "jq")
+    # 从 core_deps 数组中移除了 "jq"
+    local core_deps=("curl" "openssl")
     local all_deps_met=true
     for dep in "${core_deps[@]}"; do
         if ! command -v "$dep" &>/dev/null; then
@@ -890,7 +891,7 @@ show_menu() {
 
 # --- Script Entry Point ---
 check_root
-check_dependencies
+check_dependencies # 已移除 jq 依赖检查
 find_and_set_singbox_cmd
 load_persistent_info
 
