@@ -433,6 +433,9 @@ EOF
     local final_inbounds_json
     final_inbounds_json=$(IFS=,; echo "${inbounds_json_array[*]}")
 
+    # -------------------------------------------------------------------
+    # 注意这里 dns.servers 的格式，确保是对象数组
+    # -------------------------------------------------------------------
     cat > "$SINGBOX_CONFIG_FILE" <<EOF
 {
     "log": {
@@ -440,9 +443,9 @@ EOF
         "timestamp": true
     },
     "dns": {
-        "tag": "my_default_resolver", // 给DNS配置一个标签
+        "tag": "my_default_resolver",
         "servers": [
-            { // 必须是对象格式
+            {
                 "address": "8.8.8.8",
                 "detour": "direct"
             },
@@ -470,8 +473,7 @@ EOF
         {
             "type": "direct",
             "tag": "direct",
-            // domain_resolver 将由 route.default_domain_resolver 提供
-            // 或者直接在这里指定 "domain_resolver": "my_default_resolver"
+            "domain_resolver": "my_default_resolver" // 让 direct 出站使用我们定义的 resolver
         },
         {
             "type": "block",
@@ -479,13 +481,16 @@ EOF
         }
     ],
     "route": {
-        "default_domain_resolver": "my_default_resolver", // 设置默认的域名解析器
+        // "default_domain_resolver": "my_default_resolver", // 也可以在这里设置，效果类似
         "rules": [
         ],
         "final": "direct"
     }
 }
 EOF
+    # -------------------------------------------------------------------
+    # EOF 结束
+    # -------------------------------------------------------------------
 
     info "正在校验配置文件..."
     if $SINGBOX_CMD check -c "$SINGBOX_CONFIG_FILE"; then
@@ -498,7 +503,7 @@ EOF
         fi
     else
         error "配置文件语法错误。请检查 ${SINGBOX_CONFIG_FILE}"
-        cat "${SINGBOX_CONFIG_FILE}" # 显示错误的配置文件内容以供调试
+        cat "${SINGBOX_CONFIG_FILE}"
         return 1
     fi
 }
