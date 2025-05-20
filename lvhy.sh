@@ -368,7 +368,6 @@ create_config_json() {
     mkdir -p "$SINGBOX_CONFIG_DIR"
 
     local inbounds_json_array=()
-    # ... (Hysteria2 和 Reality 的入站配置不变) ...
     if [ "$mode" == "all" ] || [ "$mode" == "hysteria2" ]; then
         inbounds_json_array+=( "$(cat <<EOF
         {
@@ -417,7 +416,7 @@ EOF
                 "reality": {
                     "enabled": true,
                     "handshake": {
-                        "server": "${reality_sni}", // 这个 server 字段如果也是域名，会被 my_default_resolver 解析
+                        "server": "${reality_sni}",
                         "server_port": 443
                     },
                     "private_key": "${reality_private_key}",
@@ -441,14 +440,26 @@ EOF
         "timestamp": true
     },
     "dns": {
+        "tag": "my_default_resolver", // 给DNS配置一个标签
         "servers": [
-            "8.8.8.8",
-            "1.1.1.1",
-            "223.5.5.5",
-            "119.29.29.29"
+            { // 必须是对象格式
+                "address": "8.8.8.8",
+                "detour": "direct"
+            },
+            {
+                "address": "1.1.1.1",
+                "detour": "direct"
+            },
+            {
+                "address": "223.5.5.5",
+                "detour": "direct"
+            },
+            {
+                "address": "119.29.29.29",
+                "detour": "direct"
+            }
         ],
         "strategy": "ipv4_only",
-        "tag": "my_default_resolver", // 给DNS配置一个标签
         "disable_cache": false,
         "independent_cache": false
     },
@@ -459,8 +470,8 @@ EOF
         {
             "type": "direct",
             "tag": "direct",
-            // direct 出站如果需要解析域名，会使用这里指定的 resolver
-            "domain_resolver": "my_default_resolver"
+            // domain_resolver 将由 route.default_domain_resolver 提供
+            // 或者直接在这里指定 "domain_resolver": "my_default_resolver"
         },
         {
             "type": "block",
@@ -468,7 +479,7 @@ EOF
         }
     ],
     "route": {
-        // "default_domain_resolver": "my_default_resolver", // 也可以在这里设置全局默认
+        "default_domain_resolver": "my_default_resolver", // 设置默认的域名解析器
         "rules": [
         ],
         "final": "direct"
@@ -477,7 +488,6 @@ EOF
 EOF
 
     info "正在校验配置文件..."
-    # ... (校验和格式化部分不变) ...
     if $SINGBOX_CMD check -c "$SINGBOX_CONFIG_FILE"; then
         success "配置文件语法正确。"
         info "正在格式化配置文件..."
@@ -488,7 +498,7 @@ EOF
         fi
     else
         error "配置文件语法错误。请检查 ${SINGBOX_CONFIG_FILE}"
-        cat "${SINGBOX_CONFIG_FILE}"
+        cat "${SINGBOX_CONFIG_FILE}" # 显示错误的配置文件内容以供调试
         return 1
     fi
 }
