@@ -442,60 +442,47 @@ EOF
     "dns": {
         "servers": [
             {
-                "tag": "google_dns", // 新格式：为DNS服务器添加tag
-                "address": "8.8.8.8",
-                "detour": "direct"    // 新格式：指定DNS查询的出站
+                "tag": "google_dns",
+                "address": "8.8.8.8" // 移除了 detour: "direct"
             },
             {
                 "tag": "cloudflare_dns",
-                "address": "1.1.1.1",
-                "detour": "direct"
+                "address": "1.1.1.1" // 移除了 detour: "direct"
             },
             {
                 "tag": "alidns",
-                "address": "223.5.5.5",
-                "detour": "direct"
+                "address": "223.5.5.5" // 移除了 detour: "direct"
             },
             {
                 "tag": "dnspod_dns",
-                "address": "119.29.29.29",
-                "detour": "direct"
+                "address": "119.29.29.29" // 移除了 detour: "direct"
             }
         ],
-        "strategy": "ipv4_only", // 保持ipv4_only策略
+        "strategy": "ipv4_only",
         "disable_cache": false,
         "independent_cache": false
-        // "final": "google_dns" // 可选：如果所有DNS服务器都失败，最后尝试哪个
+        // "final": "google_dns" // 如果有多个DNS，可以指定一个最终尝试的
     },
     "inbounds": [
-        ${final_inbounds_json}
+        ${final_inbounds_json} // 假设 final_inbounds_json 变量已正确生成
     ],
     "outbounds": [
         {
             "type": "direct",
             "tag": "direct"
-            // "domain_strategy": "ipv4_only" // 也可以在这里为特定出站设置，但default_domain_resolver更通用
+            // 注意：新的 "direct" 出站可以有更多配置，例如 network, domain_strategy 等
+            // 但对于基础用法，这样即可。
+            // "domain_resolver": "google_dns" // 可选：如果不想用 route.default_domain_resolver
         },
         {
             "type": "block",
             "tag": "block"
         }
-        // 不再需要 type:dns 的出站了
     ],
     "route": {
-        // "default_interface": "", // 如果需要指定默认出站网卡
-        "default_domain_resolver": "google_dns", // 新格式：指定默认的域名解析器使用哪个DNS服务器的tag
+        "default_domain_resolver": "google_dns", // 指定默认域名解析器
         "rules": [
-            // 对于一般情况，不再需要 "protocol": "dns" 规则，
-            // 因为出站连接（如Reality握手）会使用 default_domain_resolver
-            // 如果您有更复杂的DNS分流需求，例如国内外分流，则可以在这里添加规则，
-            // 并使用 action: "use_domain_resolver" 并指定 resolver_tag
-            // 例如：
-            // {
-            //   "geosite": "cn",
-            //   "action": "use_domain_resolver",
-            //   "resolver_tag": "alidns" // 假设你希望国内域名用阿里DNS解析
-            // }
+            // 规则可以根据需要添加
         ],
         "final": "direct"
     }
