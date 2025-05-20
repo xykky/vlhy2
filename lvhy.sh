@@ -368,7 +368,7 @@ create_config_json() {
     mkdir -p "$SINGBOX_CONFIG_DIR"
 
     local inbounds_json_array=()
-    # ... (Hysteria2 和 Reality 的入站配置不变，如之前版本) ...
+    # ... (Hysteria2 和 Reality 的入站配置不变) ...
     if [ "$mode" == "all" ] || [ "$mode" == "hysteria2" ]; then
         inbounds_json_array+=( "$(cat <<EOF
         {
@@ -441,6 +441,7 @@ EOF
         "timestamp": true
     },
     "dns": {
+        "tag": "my_resolver",
         "servers": [
             {
                 "address": "8.8.8.8",
@@ -470,6 +471,7 @@ EOF
         {
             "type": "direct",
             "tag": "direct"
+            // domain_resolver 将由 route.default_domain_resolver 提供
         },
         {
             "type": "block",
@@ -477,6 +479,7 @@ EOF
         }
     ],
     "route": {
+        "default_domain_resolver": "my_resolver",
         "rules": [
         ],
         "final": "direct"
@@ -500,7 +503,6 @@ EOF
         return 1
     fi
 }
-
 
 create_systemd_service() {
     if [ -z "$SINGBOX_CMD" ]; then
