@@ -369,6 +369,7 @@ create_config_json() {
 
     local inbounds_json_array=()
     if [ "$mode" == "all" ] || [ "$mode" == "hysteria2" ]; then
+        # ... (Hysteria2 入站配置不变，如之前版本) ...
         inbounds_json_array+=( "$(cat <<EOF
         {
             "type": "hysteria2",
@@ -398,6 +399,7 @@ EOF
     fi
 
     if [ "$mode" == "all" ] || [ "$mode" == "reality" ]; then
+        # ... (Reality 入站配置不变，如之前版本) ...
         inbounds_json_array+=( "$(cat <<EOF
         {
             "type": "vless",
@@ -461,18 +463,13 @@ EOF
         {
             "type": "block",
             "tag": "block"
-        },
-        {
-            "type": "dns",
-            "tag": "dns-out"
         }
+        // 移除了 type:dns 的出站
     ],
     "route": {
         "rules": [
-            {
-                "protocol": "dns",
-                "outbound": "dns-out"
-            }
+            // 移除了 protocol:dns 的路由规则，除非有特殊分流需求
+            // 对于一般情况，顶层 dns 配置会自动生效
         ],
         "final": "direct"
     }
@@ -480,6 +477,7 @@ EOF
 EOF
 
     info "正在校验配置文件..."
+    # ... (校验和格式化部分不变) ...
     if $SINGBOX_CMD check -c "$SINGBOX_CONFIG_FILE"; then
         success "配置文件语法正确。"
         info "正在格式化配置文件..."
