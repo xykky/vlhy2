@@ -369,7 +369,6 @@ create_config_json() {
 
     local inbounds_json_array=()
     if [ "$mode" == "all" ] || [ "$mode" == "hysteria2" ]; then
-        # ... (Hysteria2 入站配置不变，如之前版本) ...
         inbounds_json_array+=( "$(cat <<EOF
         {
             "type": "hysteria2",
@@ -399,7 +398,6 @@ EOF
     fi
 
     if [ "$mode" == "all" ] || [ "$mode" == "reality" ]; then
-        # ... (Reality 入站配置不变，如之前版本) ...
         inbounds_json_array+=( "$(cat <<EOF
         {
             "type": "vless",
@@ -414,11 +412,11 @@ EOF
             ],
             "tls": {
                 "enabled": true,
-                "server_name": "${reality_sni}",
+                "server_name": "${reality_sni}", // 客户端SNI
                 "reality": {
                     "enabled": true,
                     "handshake": {
-                        "server": "${reality_sni}",
+                        "server": "${reality_sni}", // 目标服务器，其域名解析将使用 my_custom_resolver
                         "server_port": 443
                     },
                     "private_key": "${reality_private_key}",
@@ -442,11 +440,24 @@ EOF
         "timestamp": true
     },
     "dns": {
+        "tag": "my_custom_resolver", // 定义一个带标签的DNS解析器配置
         "servers": [
-            { "address": "8.8.8.8" },
-            { "address": "1.1.1.1" },
-            { "address": "223.5.5.5" },
-            { "address": "119.29.29.29" }
+            {
+                "address": "8.8.8.8",
+                "detour": "direct"
+            },
+            {
+                "address": "1.1.1.1",
+                "detour": "direct"
+            },
+            {
+                "address": "223.5.5.5",
+                "detour": "direct"
+            },
+            {
+                "address": "119.29.29.29",
+                "detour": "direct"
+            }
         ],
         "strategy": "ipv4_only",
         "disable_cache": false,
@@ -458,18 +469,17 @@ EOF
     "outbounds": [
         {
             "type": "direct",
-            "tag": "direct"
+            "tag": "direct",
+            "domain_resolver": "my_custom_resolver" // direct出站明确使用此解析器
         },
         {
             "type": "block",
             "tag": "block"
         }
-        // 移除了 type:dns 的出站
     ],
     "route": {
+        "default_domain_resolver": "my_custom_resolver", // 全局默认域名解析器
         "rules": [
-            // 移除了 protocol:dns 的路由规则，除非有特殊分流需求
-            // 对于一般情况，顶层 dns 配置会自动生效
         ],
         "final": "direct"
     }
@@ -477,7 +487,6 @@ EOF
 EOF
 
     info "正在校验配置文件..."
-    # ... (校验和格式化部分不变) ...
     if $SINGBOX_CMD check -c "$SINGBOX_CONFIG_FILE"; then
         success "配置文件语法正确。"
         info "正在格式化配置文件..."
