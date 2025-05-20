@@ -369,7 +369,6 @@ create_config_json() {
 
     local inbounds_json_array=()
     if [ "$mode" == "all" ] || [ "$mode" == "hysteria2" ]; then
-        # ... (Hysteria2 入站配置不变，如之前版本) ...
         inbounds_json_array+=( "$(cat <<EOF
         {
             "type": "hysteria2",
@@ -399,7 +398,6 @@ EOF
     fi
 
     if [ "$mode" == "all" ] || [ "$mode" == "reality" ]; then
-        # ... (Reality 入站配置不变，如之前版本) ...
         inbounds_json_array+=( "$(cat <<EOF
         {
             "type": "vless",
@@ -443,14 +441,31 @@ EOF
     },
     "dns": {
         "servers": [
-            { "address": "8.8.8.8" },
-            { "address": "1.1.1.1" },
-            { "address": "223.5.5.5" },
-            { "address": "119.29.29.29" }
+            {
+                "tag": "google_dns", // 新格式：为DNS服务器添加tag
+                "address": "8.8.8.8",
+                "detour": "direct"    // 新格式：指定DNS查询的出站
+            },
+            {
+                "tag": "cloudflare_dns",
+                "address": "1.1.1.1",
+                "detour": "direct"
+            },
+            {
+                "tag": "alidns",
+                "address": "223.5.5.5",
+                "detour": "direct"
+            },
+            {
+                "tag": "dnspod_dns",
+                "address": "119.29.29.29",
+                "detour": "direct"
+            }
         ],
-        "strategy": "ipv4_only",
+        "strategy": "ipv4_only", // 保持ipv4_only策略
         "disable_cache": false,
         "independent_cache": false
+        // "final": "google_dns" // 可选：如果所有DNS服务器都失败，最后尝试哪个
     },
     "inbounds": [
         ${final_inbounds_json}
@@ -459,17 +474,28 @@ EOF
         {
             "type": "direct",
             "tag": "direct"
+            // "domain_strategy": "ipv4_only" // 也可以在这里为特定出站设置，但default_domain_resolver更通用
         },
         {
             "type": "block",
             "tag": "block"
         }
-        // 移除了 type:dns 的出站
+        // 不再需要 type:dns 的出站了
     ],
     "route": {
+        // "default_interface": "", // 如果需要指定默认出站网卡
+        "default_domain_resolver": "google_dns", // 新格式：指定默认的域名解析器使用哪个DNS服务器的tag
         "rules": [
-            // 移除了 protocol:dns 的路由规则，除非有特殊分流需求
-            // 对于一般情况，顶层 dns 配置会自动生效
+            // 对于一般情况，不再需要 "protocol": "dns" 规则，
+            // 因为出站连接（如Reality握手）会使用 default_domain_resolver
+            // 如果您有更复杂的DNS分流需求，例如国内外分流，则可以在这里添加规则，
+            // 并使用 action: "use_domain_resolver" 并指定 resolver_tag
+            // 例如：
+            // {
+            //   "geosite": "cn",
+            //   "action": "use_domain_resolver",
+            //   "resolver_tag": "alidns" // 假设你希望国内域名用阿里DNS解析
+            // }
         ],
         "final": "direct"
     }
@@ -477,7 +503,6 @@ EOF
 EOF
 
     info "正在校验配置文件..."
-    # ... (校验和格式化部分不变) ...
     if $SINGBOX_CMD check -c "$SINGBOX_CONFIG_FILE"; then
         success "配置文件语法正确。"
         info "正在格式化配置文件..."
