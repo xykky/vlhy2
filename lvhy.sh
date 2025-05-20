@@ -417,7 +417,7 @@ EOF
                 "reality": {
                     "enabled": true,
                     "handshake": {
-                        "server": "${reality_sni}",
+                        "server": "${reality_sni}", // 这个 server 字段如果也是域名，会被 my_default_resolver 解析
                         "server_port": 443
                     },
                     "private_key": "${reality_private_key}",
@@ -441,26 +441,14 @@ EOF
         "timestamp": true
     },
     "dns": {
-        "tag": "my_resolver",
         "servers": [
-            {
-                "address": "8.8.8.8",
-                "detour": "direct"
-            },
-            {
-                "address": "1.1.1.1",
-                "detour": "direct"
-            },
-            {
-                "address": "223.5.5.5",
-                "detour": "direct"
-            },
-            {
-                "address": "119.29.29.29",
-                "detour": "direct"
-            }
+            "8.8.8.8",
+            "1.1.1.1",
+            "223.5.5.5",
+            "119.29.29.29"
         ],
         "strategy": "ipv4_only",
+        "tag": "my_default_resolver", // 给DNS配置一个标签
         "disable_cache": false,
         "independent_cache": false
     },
@@ -470,8 +458,9 @@ EOF
     "outbounds": [
         {
             "type": "direct",
-            "tag": "direct"
-            // domain_resolver 将由 route.default_domain_resolver 提供
+            "tag": "direct",
+            // direct 出站如果需要解析域名，会使用这里指定的 resolver
+            "domain_resolver": "my_default_resolver"
         },
         {
             "type": "block",
@@ -479,7 +468,7 @@ EOF
         }
     ],
     "route": {
-        "default_domain_resolver": "my_resolver",
+        // "default_domain_resolver": "my_default_resolver", // 也可以在这里设置全局默认
         "rules": [
         ],
         "final": "direct"
