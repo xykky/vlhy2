@@ -368,6 +368,7 @@ create_config_json() {
     mkdir -p "$SINGBOX_CONFIG_DIR"
 
     local inbounds_json_array=()
+    # ... (Hysteria2 和 Reality 的入站配置不变，如之前版本) ...
     if [ "$mode" == "all" ] || [ "$mode" == "hysteria2" ]; then
         inbounds_json_array+=( "$(cat <<EOF
         {
@@ -442,37 +443,33 @@ EOF
     "dns": {
         "servers": [
             {
-                "tag": "google_dns",
-                "address": "8.8.8.8" // 移除了 detour: "direct"
+                "address": "8.8.8.8",
+                "detour": "direct"
             },
             {
-                "tag": "cloudflare_dns",
-                "address": "1.1.1.1" // 移除了 detour: "direct"
+                "address": "1.1.1.1",
+                "detour": "direct"
             },
             {
-                "tag": "alidns",
-                "address": "223.5.5.5" // 移除了 detour: "direct"
+                "address": "223.5.5.5",
+                "detour": "direct"
             },
             {
-                "tag": "dnspod_dns",
-                "address": "119.29.29.29" // 移除了 detour: "direct"
+                "address": "119.29.29.29",
+                "detour": "direct"
             }
         ],
         "strategy": "ipv4_only",
         "disable_cache": false,
         "independent_cache": false
-        // "final": "google_dns" // 如果有多个DNS，可以指定一个最终尝试的
     },
     "inbounds": [
-        ${final_inbounds_json} // 假设 final_inbounds_json 变量已正确生成
+        ${final_inbounds_json}
     ],
     "outbounds": [
         {
             "type": "direct",
             "tag": "direct"
-            // 注意：新的 "direct" 出站可以有更多配置，例如 network, domain_strategy 等
-            // 但对于基础用法，这样即可。
-            // "domain_resolver": "google_dns" // 可选：如果不想用 route.default_domain_resolver
         },
         {
             "type": "block",
@@ -480,9 +477,7 @@ EOF
         }
     ],
     "route": {
-        "default_domain_resolver": "google_dns", // 指定默认域名解析器
         "rules": [
-            // 规则可以根据需要添加
         ],
         "final": "direct"
     }
@@ -490,6 +485,7 @@ EOF
 EOF
 
     info "正在校验配置文件..."
+    # ... (校验和格式化部分不变) ...
     if $SINGBOX_CMD check -c "$SINGBOX_CONFIG_FILE"; then
         success "配置文件语法正确。"
         info "正在格式化配置文件..."
