@@ -14,9 +14,8 @@ SINGBOX_CONFIG_DIR="/usr/local/etc/sing-box"
 SINGBOX_CONFIG_FILE="${SINGBOX_CONFIG_DIR}/config.json"
 SINGBOX_SERVICE_FILE="/etc/systemd/system/sing-box.service"
 
-HYSTERIA_CERT_DIR="/etc/hysteria" # 针对自签名证书
-HYSTERIA_CERT_KEY="${HYSTERIA_CERT_DIR}/private.key"
-HYSTERIA_CERT_PEM="${HYSTERIA_CERT_DIR}/cert.pem"
+HYSTERIA_CERT_KEY="/etc/letsencrypt/live/sizz.dpdns.org/privkey.pem"
+HYSTERIA_CERT_PEM="/etc/letsencrypt/live/sizz.dpdns.org/fullchain.pem"
 
 # 用于持久存储上次配置信息的文件
 PERSISTENT_INFO_FILE="${SINGBOX_CONFIG_DIR}/.last_singbox_script_info"
