@@ -211,28 +211,21 @@ find_and_set_singbox_cmd() {
 
 
 get_server_ip() {
-    SERVER_IP=$(curl -s --max-time 5 ip.sb || curl -s --max-time 5 https://api.ipify.org || curl -s --max-time 5 https://checkip.amazonaws.com)
-    if [ -z "$SERVER_IP" ]; then
-        warn "无法自动获取服务器公网 IP。你可能需要手动配置客户端。"
-        read -p "请输入你的服务器公网 IP (留空则尝试从hostname获取): " MANUAL_SERVER_IP
-        if [ -n "$MANUAL_SERVER_IP" ]; then
-            SERVER_IP="$MANUAL_SERVER_IP"
-        else
-            SERVER_IP=$(hostname -I | awk '{print $1}') # 如果所有其他方法失败，则回退到本地IP
-            if [ -z "$SERVER_IP" ]; then
-                warn "无法从hostname获取IP，请确保网络连接正常或手动输入。"
-            fi
+    # 询问用户输入 IP 地址或域名
+    read -p "请输入你的服务器公网 IP 或 域名: " MANUAL_SERVER_IP_OR_DOMAIN
+    
+    # 如果用户输入了 IP 或域名
+    if [ -n "$MANUAL_SERVER_IP_OR_DOMAIN" ]; then
+        SERVER_IP="$MANUAL_SERVER_IP_OR_DOMAIN"
+    else
+        # 如果没有输入，则尝试获取主机名
+        SERVER_IP=$(hostname -I | awk '{print $1}')
+        if [ -z "$SERVER_IP" ]; then
+            warn "无法从hostname获取IP，请确保网络连接正常或手动输入。"
         fi
     fi
-    # 进一步验证IP是否为公网IP (简单检查)
-    if [[ "$SERVER_IP" =~ ^10\. || "$SERVER_IP" =~ ^172\.(1[6-9]|2[0-9]|3[0-1])\. || "$SERVER_IP" =~ ^192\.168\. ]]; then
-        warn "检测到的 IP (${SERVER_IP}) 似乎是私有IP。如果这是公网服务器，请手动输入正确的公网IP。"
-        read -p "请再次输入你的服务器公网 IP (如果上面的IP不正确): " OVERRIDE_SERVER_IP
-        if [ -n "$OVERRIDE_SERVER_IP" ]; then
-            SERVER_IP="$OVERRIDE_SERVER_IP"
-        fi
-    fi
-    info "检测到服务器 IP: ${SERVER_IP}"
+
+    info "使用的服务器地址: ${SERVER_IP}"
     LAST_SERVER_IP="$SERVER_IP"
 }
 
