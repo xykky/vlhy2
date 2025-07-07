@@ -51,6 +51,6 @@ apt install -y certbot python3-certbot-nginx
 
 # 申请 HTTPS 证书
 echo "申请 Let's Encrypt HTTPS 证书..."
-certbot --nginx -d $DOMAIN --agree-tos --email xykqaq@163.com
+certbot --nginx -d $DOMAIN --agree-tos --email xykqaq@163.com --non-interactive
 
 echo "✅ 部署完成！请访问：https://$DOMAIN"
