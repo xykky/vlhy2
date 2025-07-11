@@ -3,7 +3,7 @@
 set -e
 
 # 配置变量：修改为你的实际域名
-DOMAIN="openlist.sizz.dpdns.org"
+DOMAIN="openlist.kkyy.qzz.io"
 
 # 安装 Docker
 echo "正在安装 Docker..."
