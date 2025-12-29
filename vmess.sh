@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # =========================
-# Sing-box VMess + Argo (带菜单 + 优选域名管理)
+# Sing-box VMess + Argo 
+# 修复 UUID 显示错误 + 优选域名管理
 # 快捷指令: vmess
 # =========================
 
@@ -37,24 +38,12 @@ check_status() {
     fi
 }
 
-# 获取 IPv4 (强制)
-get_realip() {
-    ip=$(curl -4 -sm 2 ip.sb)
-    if [ -z "$ip" ]; then ip=$(curl -4 -sm 2 ipinfo.io/ip); fi
-    if [ -z "$ip" ]; then ip=$(curl -4 -sm 2 ifconfig.me); fi
-    echo "$ip"
-}
-
-# 创建快捷指令 (修复版：使用 curl 下载)
+# 创建快捷指令
 create_shortcut() {
-    echo -e "${yellow}正在安装快捷指令...${re}"
+    echo -e "${yellow}正在更新快捷指令...${re}"
     curl -L -o /usr/bin/vmess "$SCRIPT_URL"
-    if [ -s /usr/bin/vmess ]; then
-        chmod +x /usr/bin/vmess
-        echo -e "${green}快捷指令 'vmess' 已创建/更新。${re}"
-    else
-        echo -e "${red}快捷指令创建失败，请检查网络连接。${re}"
-    fi
+    chmod +x /usr/bin/vmess
+    echo -e "${green}快捷指令 'vmess' 已更新。${re}"
 }
 
 # 安装依赖
@@ -91,7 +80,6 @@ install_core() {
     fi
     chmod +x "${work_dir}/sing-box" "${work_dir}/argo"
     
-    # 初始化优选域名配置
     if [ ! -f "$cfip_file" ]; then
         echo "cf.877774.xyz:443" > "$cfip_file"
     fi
@@ -99,7 +87,13 @@ install_core() {
 
 # 生成配置
 configure() {
+    # 强制生成一个新的 UUID
     uuid=$(cat /proc/sys/kernel/random/uuid)
+    # 如果系统没有 random/uuid，使用 openssl 生成
+    if [ -z "$uuid" ]; then
+        uuid=$(openssl rand -hex 16 | sed 's/\(.\{8\}\)\(.\{4\}\)\(.\{4\}\)\(.\{4\}\)/\1-\2-\3-\4-/')
+    fi
+
     cat > "${config_dir}" << EOF
 {
   "log": { "disabled": false, "level": "error", "output": "$work_dir/sb.log", "timestamp": true },
@@ -166,14 +160,11 @@ change_cfip() {
     echo -e "${green}5.${re} cf.zhetengsha.eu.org"
     echo -e "${green}6.${re} time.is"
     echo -e "${purple}------------------------${re}"
-    echo -e "请输入选项 (1-6)，或者直接输入 ${skyblue}域名:端口${re} (例如: 1.1.1.1:443)"
-    echo -e "直接回车默认使用选项 2"
-    echo -e ""
+    echo -e "请输入选项 (1-6)，或者直接输入 ${skyblue}域名:端口${re}"
     read -p "请输入: " cfip_input
 
     if [ -z "$cfip_input" ]; then
-        cfip="cf.877774.xyz"
-        cfport="443"
+        cfip="cf.877774.xyz"; cfport="443"
     else
         case "$cfip_input" in
             "1") cfip="cf.090227.xyz"; cfport="443" ;;
@@ -194,16 +185,13 @@ change_cfip() {
         esac
     fi
 
-    # 保存配置到文件
     echo "${cfip}:${cfport}" > "$cfip_file"
-    echo -e "${green}优选域名已更新为: ${purple}${cfip}:${cfport}${re}"
-    echo -e "${yellow}正在重新生成订阅链接...${re}"
+    echo -e "${green}优选域名已更新，正在重新生成链接...${re}"
     show_node_info
 }
 
-# 提取并显示链接
+# 提取并显示链接 (使用 jq 修复)
 show_node_info() {
-    # 如果是刚启动，多等一会
     [ "$1" == "wait" ] && echo -e "${yellow}正在获取 Cloudflare 域名...${re}" && sleep 5
 
     for i in {1..5}; do
@@ -215,18 +203,23 @@ show_node_info() {
     done
 
     if [ -z "$argodomain" ]; then
-        echo -e "${red}获取 Argo 域名失败，服务可能未启动或网络问题。${re}"
+        echo -e "${red}获取 Argo 域名失败，服务可能未启动。${re}"
         return
     fi
 
-    # 读取 UUID
+    # === 关键修复点: 使用 jq 读取真正的 UUID ===
     if [ -f "$config_dir" ]; then
-        uuid=$(grep "uuid" $config_dir | awk -F'"' '{print $4}')
+        uuid=$(jq -r '.inbounds[0].users[0].uuid' "$config_dir")
+        
+        # 如果 jq 失败或读空 (防呆)，尝试 sed 暴力提取
+        if [ -z "$uuid" ] || [ "$uuid" == "null" ]; then
+             uuid=$(grep -oP '"uuid": "\K[^"]+' "$config_dir" 2>/dev/null)
+        fi
     else
         echo -e "${red}配置文件不存在${re}" && return
     fi
 
-    # 读取优选 IP 配置
+    # 读取优选 IP
     if [ -f "$cfip_file" ]; then
         CF_FULL=$(cat "$cfip_file")
         CFIP=${CF_FULL%:*}
@@ -261,18 +254,16 @@ install_main() {
     show_node_info "wait"
 }
 
-# 重置域名 (临时救急)
+# 重置域名
 refresh_domain() {
-    echo -e "${yellow}正在重启 Argo 通道以获取新域名...${re}"
+    echo -e "${yellow}正在重启 Argo 通道...${re}"
     systemctl restart ${service_argo}
     sleep 2
-    echo -e "${yellow}等待新域名生效...${re}"
     show_node_info "wait"
 }
 
 # 卸载
 uninstall() {
-    echo -e "${yellow}正在卸载...${re}"
     systemctl stop ${service_core} ${service_argo}
     systemctl disable ${service_core} ${service_argo}
     rm /etc/systemd/system/${service_core}.service /etc/systemd/system/${service_argo}.service
@@ -293,8 +284,8 @@ menu() {
     echo -e ""
     echo -e "${green}1.${re} 安装 / 重装服务"
     echo -e "${green}2.${re} 查看节点链接 (VMess)"
-    echo -e "${green}3.${re} 重置域名 (救急用 - 域名失效点我)"
-    echo -e "${green}4.${re} 修改优选域名 (CFIP)"
+    echo -e "${green}3.${re} 重置域名 (域名失效点我)"
+    echo -e "${green}4.${re} 修改优选域名"
     echo -e "${purple}---------------------------${re}"
     echo -e "${green}5.${re} 停止服务"
     echo -e "${green}6.${re} 启动服务"
@@ -308,18 +299,17 @@ menu() {
         2) show_node_info ;;
         3) refresh_domain ;;
         4) change_cfip ;;
-        5) systemctl stop ${service_core} ${service_argo} && echo -e "${red}服务已停止${re}" ;;
-        6) systemctl start ${service_core} ${service_argo} && echo -e "${green}服务已启动${re}" ;;
+        5) systemctl stop ${service_core} ${service_argo} && echo -e "${red}已停止${re}" ;;
+        6) systemctl start ${service_core} ${service_argo} && echo -e "${green}已启动${re}" ;;
         7) uninstall ;;
         0) exit 0 ;;
         *) echo -e "${red}无效选项${re}" && sleep 1 && menu ;;
     esac
 }
 
-# 首次运行创建快捷方式
+# 首次运行逻辑
 if [ ! -f /usr/bin/vmess ]; then
     create_shortcut
 fi
 
-# 进入菜单
 menu
