@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # =========================
-# Sing-box VMess + Argo 
-# 修复 UUID 显示错误 + 优选域名管理
+# Sing-box VMess + Argo (修复版 + 强力卸载)
+# 功能: VMess节点 | 优选域名 | 彻底卸载
 # 快捷指令: vmess
 # =========================
 
@@ -21,7 +21,7 @@ cfip_file="${work_dir}/cfip.conf"
 service_core="vmess-box"
 service_argo="vmess-argo"
 
-# 脚本远程下载地址 (你的 GitHub 地址)
+# 脚本远程下载地址 (你的 GitHub 地址，用于更新快捷指令)
 SCRIPT_URL="https://github.com/xykky/vlhy2/raw/refs/heads/main/vmess.sh"
 
 # 检查 root 权限
@@ -40,8 +40,11 @@ check_status() {
 
 # 创建快捷指令
 create_shortcut() {
-    echo -e "${yellow}正在更新快捷指令...${re}"
-    curl -L -o /usr/bin/vmess "$SCRIPT_URL"
+    # 尝试从远程下载最新版作为快捷指令，如果失败则复制当前脚本
+    curl -L -o /usr/bin/vmess "$SCRIPT_URL" 2>/dev/null
+    if [ ! -s /usr/bin/vmess ]; then
+        cp "$0" /usr/bin/vmess
+    fi
     chmod +x /usr/bin/vmess
     echo -e "${green}快捷指令 'vmess' 已更新。${re}"
 }
@@ -190,7 +193,7 @@ change_cfip() {
     show_node_info
 }
 
-# 提取并显示链接 (使用 jq 修复)
+# 提取并显示链接
 show_node_info() {
     [ "$1" == "wait" ] && echo -e "${yellow}正在获取 Cloudflare 域名...${re}" && sleep 5
 
@@ -207,11 +210,9 @@ show_node_info() {
         return
     fi
 
-    # === 关键修复点: 使用 jq 读取真正的 UUID ===
+    # 使用 jq 精确读取 UUID
     if [ -f "$config_dir" ]; then
         uuid=$(jq -r '.inbounds[0].users[0].uuid' "$config_dir")
-        
-        # 如果 jq 失败或读空 (防呆)，尝试 sed 暴力提取
         if [ -z "$uuid" ] || [ "$uuid" == "null" ]; then
              uuid=$(grep -oP '"uuid": "\K[^"]+' "$config_dir" 2>/dev/null)
         fi
@@ -219,7 +220,6 @@ show_node_info() {
         echo -e "${red}配置文件不存在${re}" && return
     fi
 
-    # 读取优选 IP
     if [ -f "$cfip_file" ]; then
         CF_FULL=$(cat "$cfip_file")
         CFIP=${CF_FULL%:*}
@@ -262,15 +262,37 @@ refresh_domain() {
     show_node_info "wait"
 }
 
-# 卸载
+# ============================================
+# 卸载功能 (已集成你提供的强力卸载脚本)
+# ============================================
 uninstall() {
-    systemctl stop ${service_core} ${service_argo}
-    systemctl disable ${service_core} ${service_argo}
-    rm /etc/systemd/system/${service_core}.service /etc/systemd/system/${service_argo}.service
+    echo -e "${yellow}正在准备卸载...${re}"
+
+    # 1. 停止并禁用服务
+    echo -e "1. 停止并禁用服务..."
+    systemctl stop ${service_core} ${service_argo} >/dev/null 2>&1
+    systemctl disable ${service_core} ${service_argo} >/dev/null 2>&1
+
+    # 2. 删除系统服务文件
+    echo -e "2. 删除系统服务文件..."
+    rm -f /etc/systemd/system/${service_core}.service
+    rm -f /etc/systemd/system/${service_argo}.service
+
+    # 3. 重载系统服务守护进程
+    echo -e "3. 重载系统守护进程..."
     systemctl daemon-reload
+
+    # 4. 删除工作目录 (配置文件、日志、程序本体)
+    echo -e "4. 删除工作目录..."
     rm -rf ${work_dir}
-    rm /usr/bin/vmess
-    echo -e "${green}卸载完成。${re}"
+
+    # 5. 删除快捷指令 (如果有的话)
+    echo -e "5. 删除快捷指令..."
+    rm -f /usr/bin/vmess
+
+    # 6. 提示完成
+    echo -e ""
+    echo -e "${green}卸载完成！相关文件和服务已全部清除。${re}"
     exit 0
 }
 
