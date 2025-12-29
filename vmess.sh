@@ -20,6 +20,9 @@ cfip_file="${work_dir}/cfip.conf"
 service_core="vmess-box"
 service_argo="vmess-argo"
 
+# 脚本远程下载地址 (你的 GitHub 地址)
+SCRIPT_URL="https://github.com/xykky/vlhy2/raw/refs/heads/main/vmess.sh"
+
 # 检查 root 权限
 [[ $EUID -ne 0 ]] && echo -e "${red}错误: 请在 root 用户下运行脚本${re}" && exit 1
 
@@ -42,11 +45,16 @@ get_realip() {
     echo "$ip"
 }
 
-# 创建快捷指令
+# 创建快捷指令 (修复版：使用 curl 下载)
 create_shortcut() {
-    cp "$0" /usr/bin/vmess
-    chmod +x /usr/bin/vmess
-    echo -e "${green}快捷指令 'vmess' 已创建/更新。${re}"
+    echo -e "${yellow}正在安装快捷指令...${re}"
+    curl -L -o /usr/bin/vmess "$SCRIPT_URL"
+    if [ -s /usr/bin/vmess ]; then
+        chmod +x /usr/bin/vmess
+        echo -e "${green}快捷指令 'vmess' 已创建/更新。${re}"
+    else
+        echo -e "${red}快捷指令创建失败，请检查网络连接。${re}"
+    fi
 }
 
 # 安装依赖
